@@ -1,5 +1,7 @@
 import os
+import re
 import boto3
+import botocore
 from werkzeug.utils import secure_filename
 from flask import current_app
 from io import BytesIO
@@ -7,6 +9,27 @@ from io import BytesIO
 
 def allowed_file(filename):
     return filename.lower().rsplit('.', 1)[1] in current_app.config.get('ALLOWED_EXTENSIONS')
+
+
+def s3_generate_unique_filename(filename, path):
+    file_exists = False
+    try:
+        s3_download_file(filename, path)
+        file_exists = True
+    except botocore.exceptions.ClientError as e:
+        pass
+    if file_exists:
+        filename_part = filename.rsplit('.', 1)[0]
+        ext_part = filename.rsplit('.', 1)[1]
+        number = 2
+        matches = re.match(r'(.+?)_(\d{1,})$', filename_part)
+        if matches:
+            filename_part = matches.group(1)
+            number = int(matches.group(2)) + 1
+        filename = '%s_%s.%s' % (filename_part, number, ext_part)
+        return s3_generate_unique_filename(filename, path)
+    else:
+        return filename
 
 
 def s3_upload_file_from_request(request, key, path=''):
@@ -31,6 +54,8 @@ def s3_upload_fileObj(fileObj, path=''):
         endpoint_url=os.getenv('AWS_S3_URL')
     )
     bucket = s3.Bucket(current_app.config.get('S3_BUCKET_NAME'))
+
+    filename = s3_generate_unique_filename(filename, path)
 
     bucket.upload_fileobj(fileObj, os.path.join(path, filename))
 

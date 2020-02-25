@@ -1,7 +1,10 @@
 import pytest
 import mock
+import botocore
 from dmutils.config import init_app
-from dmutils.file import s3_upload_fileObj, s3_upload_file_from_request, s3_download_file
+from dmutils.file import (
+    s3_upload_fileObj, s3_upload_file_from_request, s3_download_file, s3_generate_unique_filename
+)
 
 
 @pytest.fixture
@@ -19,10 +22,12 @@ def file_app(app):
     yield app
 
 
-def test_s3_upload_with_correct_params(file_app, s3_resource):
+@mock.patch('dmutils.file.s3_download_file')
+def test_s3_upload_with_correct_params(s3_download_file, file_app, s3_resource):
     with file_app.app_context():
         fileObj = mock.MagicMock()
         fileObj.filename = "test.pdf"
+        s3_download_file.side_effect = botocore.exceptions.ClientError({'Error': {}}, '')
         s3_upload_fileObj(fileObj, 'path')
 
     s3_resource.Bucket().upload_fileobj.assert_called_once_with(
@@ -40,10 +45,12 @@ def test_s3_upload_with_invalid_extension(file_app, s3_resource):
             s3_upload_fileObj(fileObj, 'path')
 
 
-def test_s3_upload_with_uppercase_extension(file_app, s3_resource):
+@mock.patch('dmutils.file.s3_download_file')
+def test_s3_upload_with_uppercase_extension(s3_download_file, file_app, s3_resource):
     with file_app.app_context():
         fileObj = mock.MagicMock()
         fileObj.filename = "TEST.PDF"
+        s3_download_file.side_effect = botocore.exceptions.ClientError({'Error': {}}, '')
         s3_upload_fileObj(fileObj, 'path')
 
     s3_resource.Bucket().upload_fileobj.assert_called_once_with(
@@ -82,4 +89,29 @@ def test_s3_download_with_correct_params(file_app, s3_resource):
     s3_resource.Bucket().download_fileobj.assert_called_once_with(
         'path/file.txt',
         mock.ANY
+    )
+
+
+@mock.patch('dmutils.file.s3_download_file')
+def test_s3_upload_rename_instead_of_overwrite(s3_download_file, file_app, s3_resource):
+    with file_app.app_context():
+        fileObj = mock.MagicMock()
+        fileObj.filename = "test.pdf"
+        s3_download_file.side_effect = botocore.exceptions.ClientError({'Error': {}}, '')
+        s3_upload_fileObj(fileObj, 'path')
+
+    s3_resource.Bucket().upload_fileobj.assert_called_once_with(
+        fileObj,
+        "path/test.pdf"
+    )
+
+    with file_app.app_context():
+        fileObj = mock.MagicMock()
+        fileObj.filename = "test.pdf"
+        s3_download_file.side_effect = [None, botocore.exceptions.ClientError({'Error': {}}, '')]
+        s3_upload_fileObj(fileObj, 'path')
+
+    s3_resource.Bucket().upload_fileobj.assert_called_with(
+        fileObj,
+        "path/test_2.pdf"
     )
