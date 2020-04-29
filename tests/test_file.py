@@ -82,14 +82,14 @@ def test_s3_upload_from_request(upload):
     upload.assert_called_once_with('value', 'path')
 
 
-def test_s3_download_with_correct_params(file_app, s3_resource):
+@mock.patch('dmutils.file.boto3.client')
+def test_s3_download_with_correct_params(s3_client, file_app):
     with file_app.app_context():
-        s3_download_file('file.txt', 'path')
-
-    s3_resource.Bucket().download_fileobj.assert_called_once_with(
-        'path/file.txt',
-        mock.ANY
-    )
+        mock_s3 = mock.MagicMock()
+        s3_client.return_value = mock_s3
+        for download in s3_download_file('testbucket', 'file.txt', 'path'):
+            pass
+        mock_s3.get_object.assert_called_once_with(Bucket='testbucket', Key='path/file.txt')
 
 
 @mock.patch('dmutils.file.s3_download_file')

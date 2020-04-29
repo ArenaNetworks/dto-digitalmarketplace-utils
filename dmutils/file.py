@@ -62,16 +62,13 @@ def s3_upload_fileObj(fileObj, path=''):
     return filename
 
 
-def s3_download_file(file, path):
+def s3_download_file(bucket_name, file, path):
     filename = secure_filename(file)
-
-    s3 = boto3.resource(
+    s3 = boto3.client(
         's3',
         endpoint_url=os.getenv('AWS_S3_URL')
     )
-    bucket = s3.Bucket(current_app.config.get('S3_BUCKET_NAME'))
-
-    data = BytesIO()
-    bucket.download_fileobj(os.path.join(path, filename), data)
-
-    return data.getvalue()
+    obj = s3.get_object(Bucket=bucket_name, Key=os.path.join(path, filename))
+    body = obj['Body']
+    for chunk in body.iter_chunks(chunk_size=10 * 1024):
+        yield chunk
