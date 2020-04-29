@@ -108,7 +108,7 @@ def test_s3_upload_rename_instead_of_overwrite(s3_download_file, file_app, s3_re
     with file_app.app_context():
         fileObj = mock.MagicMock()
         fileObj.filename = "test.pdf"
-        s3_download_file.side_effect = [None, botocore.exceptions.ClientError({'Error': {}}, '')]
+        s3_download_file.side_effect = [iter('x'), botocore.exceptions.ClientError({'Error': {}}, '')]
         s3_upload_fileObj(fileObj, 'path')
 
     s3_resource.Bucket().upload_fileobj.assert_called_with(

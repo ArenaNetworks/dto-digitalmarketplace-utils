@@ -14,7 +14,7 @@ def allowed_file(filename):
 def s3_generate_unique_filename(filename, path):
     file_exists = False
     try:
-        s3_download_file(filename, path)
+        next(s3_download_file(current_app.config.get('S3_BUCKET_NAME'), filename, path))
         file_exists = True
     except botocore.exceptions.ClientError as e:
         pass
