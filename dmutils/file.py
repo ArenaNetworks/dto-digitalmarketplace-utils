@@ -46,7 +46,7 @@ def s3_upload_file_from_request(request, key, path=''):
 
 def s3_upload_fileObj(fileObj, path=''):
     if not allowed_file(fileObj.filename):
-        raise Exception('Invalid file extension: {}'.format(fileObj.filename))
+        raise Exception('HIIII + Invalid file extension: {}'.format(fileObj.filename))
 
     filename = secure_filename(fileObj.filename)
     s3 = boto3.resource(
