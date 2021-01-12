@@ -7,7 +7,7 @@ from setuptools import setup
 setup(
     name='dto-digitalmarketplace-utils',
     version='25.23.0',
-    url='https://github.com/ausdto/dto-digitalmarketplace-utils',
+    url='https://github.com/arenanetworks/dto-digitalmarketplace-utils',
     license='MIT',
     author='GDS Developers',
     description='Common utils for Digital Marketplace apps.',
